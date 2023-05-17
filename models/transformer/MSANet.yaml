@@ -1,0 +1,114 @@
+# parameters
+nc: 3  # number of classes
+depth_multiple: 1.00  # model depth multiple
+width_multiple: 1.00  # layer channel multiple
+
+# anchors
+anchors:
+  - [10,13, 16,30, 33,23]  
+  - [30,61, 62,45, 59,119]  
+  - [116,90, 156,198, 373,326]  
+
+# backbone
+backbone:
+  # [from, number, module, args]
+  # Two Stream
+  # "Add2" means "Concat" feature fusion
+  # "TNT" means multi-scale feature mining
+  [
+    ######### TransformerBlock One #############
+    # stream one
+    [-1, 1, Focus, [64, 3]],    # 0
+    [-1, 1, Conv, [128, 3, 2]], # 1
+    [-1, 3, C3, [128]],   # 2
+    [-1, 1, SE, [128]],  # 3
+    # stream two
+    [-4, 1, Focus, [64, 3]],    # 4
+    [-1, 1, Conv, [128, 3, 2]], # 5
+    [-1, 3, C3, [128]],   # 6
+    [-1, 1, SE, [128]],   # 7
+    # transformer fusion-head0
+    [[ 2,6], 1, TNT, [[160,320],16,128]],   # 8
+    [[ 3,8], 1, Add2, [128,0]],    # 9 stream one SE(x)+trans[0]
+    [[ 7,8], 1, Add2, [128,1]],    # 10 stream two SE(x)+trans[1]
+
+
+    [9, 1, Conv, [ 256, 3, 2 ] ],  # 11
+    [ -1, 9, C3, [ 256 ] ],   # 12
+    [-1, 1, SE, [256]],     # 13
+
+    [10, 1, Conv, [256, 3, 2]],  # 14
+    [-1, 9, C3, [256]],   # 15
+    [-1, 1, SE, [256]],   # 16
+
+
+    ######### TransformerBlock Two #############
+   # transformer fusion-head1
+    [[12,15], 1, TNT, [[80,160],16,256]],   # 17
+    [[13,17], 1, Add2, [256,0]],    # 18 stream one SE(x)+TNT[0]
+    [[16,17], 1, Add2, [256,1]],    # 19 stream two SE(x)+TNT[1]
+
+
+   ######### TransformerBlock Three #############
+   # stream one
+    [18, 1, Conv, [512, 3, 2]],   # 20
+    [-1, 9, C3, [512]],   # 21
+    [-1, 1, SE, [512]],   # 22
+   # stream two
+    [19, 1, Conv, [512, 3, 2]],   # 23
+    [-1, 9, C3, [512]],   # 24
+    [-1, 1, SE, [512]],   # 25
+   # transformer fusion-head2
+    [[21,24], 1, TNT, [[40,80],16,512]],   # 26
+    [[22,26], 1, Add2, [512,0]],    # 27 stream one SE(x)+TNT[0]
+    [[25,26], 1, Add2, [512,1]],    # 28 stream two SE(x)+TNT[1]
+
+
+    ######### TransformerBlock Four #############
+    # stream one
+    [27, 1, Conv, [1024, 3, 2]],    # 29
+    [-1, 1, SPP, [1024, [5, 9, 13]]],   # 30
+    [-1, 3, C3, [1024, False]],   # 31
+    [-1, 1, SE, [1024]], # 32
+    # stream two
+    [28, 1, Conv, [1024, 3, 2]],    # 33
+    [-1, 1, SPP, [1024, [5, 9, 13]]],   # 34
+    [-1, 3, C3, [1024, False]],   # 35
+    [-1, 1, SE, [1024]],   # 36
+    # transformer fusion-head3
+    [[31,35], 1, TNT, [[20,40],16,1024]],    # 37
+    [[32,37], 1, Add2, [1024,0]],    # 38 stream one SE(x)+TNT[0]
+    [[36,37], 1, Add2, [1024,1]],    # 39 stream two SE(x)+TNT[1]
+
+
+    ######### Add Block #############
+    [[18,19], 1, Add, [1]],   # 40 fusion backbone P3
+    [[27,28], 1, Add, [1]],   # 41 fusion backbone P4
+    [[38,39], 1, Add, [1]],   # 42 fusion backbone P5
+
+  ]
+
+
+# head
+head:
+  [
+    [-1, 1, Conv, [512, 1, 1]],   # 43
+    [-1, 1, nn.Upsample, [None, 2, 'nearest']],   # 44
+    [[-1,41], 1, Concat, [1]],    # 45 cat backbone 41
+    [-1, 3, C3, [512, False]],    # 46
+
+    [-1, 1, Conv, [256, 1, 1]],   # 47
+    [-1, 1, nn.Upsample, [None, 2, 'nearest']],   # 48
+    [[-1,40], 1, Concat, [1]],    # 49 cat backbone 40
+    [-1, 3, C3, [256, False]],    # 50 (P3/8-small)
+
+    [-1, 1, Conv, [256, 3, 2]],   # 51
+    [[-1,47], 1, Concat, [1]],    # 52 cat head 47
+    [-1, 3, C3, [512, False]],    # 53 (P4/16-medium)
+
+    [-1, 1, Conv, [512, 3, 2]],    # 54
+    [[-1,43], 1, Concat, [1]],     # 55 cat head 43
+    [-1, 3, C3, [1024, False]],     # 56 (P5/32-large)
+
+    [[50, 53, 56], 1, Detect, [nc, anchors]],   # Detect(P3, P4, P5)
+  ]

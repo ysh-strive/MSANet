@@ -1,10 +1,11 @@
 # MSANet
 ### Comparison to other methods on the FLIR datase.
-![image](https://github.com/ysh-strive/MSANet/assets/25916281/e1aab203-1827-4899-bd9e-91ccc91aa7a7)
+![image](https://github.com/ysh-strive/MSANet/assets/25916281/5f826c8d-dfb0-4886-94ba-48d094c00553)
 
 
 ### Comparison to other methods on the KAIST datase.
-![image](https://github.com/ysh-strive/MSANet/assets/25916281/580f86c0-46f5-4224-8ab3-1064c18a39c8)
+![image](https://github.com/ysh-strive/MSANet/assets/25916281/41990a2f-37c8-4c25-92c7-fb6751b61693)
+
 
 Pytorch Code of our approach for "Multi-scale Aggregation Transformers for Multispectral Object Detection"
 ### Installation 

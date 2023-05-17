@@ -1,4 +1,2 @@
 # MSANet
-Multispectral Object Detection for Autonomous Driving.
-
-The complete code of the project will be made public after the paper is accepted.
+Pytorch Code of our approach for "Multi-scale Aggregation Transformers for Multispectral Object Detection"
